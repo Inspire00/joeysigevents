@@ -161,50 +161,53 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {waitersStats.map((stat) => (
-            <div
-              key={stat.waiter.name}
-              onClick={() => handleCardClick(stat.waiter.name)}
-              className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <h3 className="text-xl font-semibold text-[#ea176b]">
-                  {stat.waiter.name}
-                </h3>
-              </div>
-              <hr className="my-4 border-gray-200" />
-              <p className="text-[#ea176b] font-semibold mb-2 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <span className="font-medium">Total Hours:</span> {stat.totalHours.toFixed(2)}
-              </p>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
-                  <span>Rate per Hour:</span>
-                </label>
-                <input
-                  type="number"
-                  value={stat.hourlyRate || ''}
-                  onChange={(e) => handleHourlyRateChange(stat.waiter.name, e.target.value)}
-                  className="border rounded-lg p-2 w-full text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter rate"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              <p className="text-green-700 font-semibold mb-2 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-green-600" />
-                <span>Gross Pay:</span> R{stat.grossEarnings.toFixed(2)}
-              </p>
-              <p className="text-blue-700 font-semibold mb-2 flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-blue-600" />
-                <span>Total Transport:</span> R{stat.transport.toFixed(2)}
-              </p>
-              <p className="text-red-700 font-semibold flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-green-600" />
-                <span>Net Pay Due:</span> R{(stat.grossEarnings - stat.transport).toFixed(2)}
-              </p>
-            </div>
-          ))}
+  <div
+      key={stat.waiter.name}
+      onClick={() => handleCardClick(stat.waiter.name)}
+      className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <h3 className="text-xl font-semibold text-[#ea176b]">
+            {stat.waiter.name}
+          </h3>
+        </div>
+        <hr className="my-4 border-gray-200" />
+        <p className="text-[#ea176b] font-semibold mb-2 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-blue-600" />
+          <span className="font-medium">Total Hours:</span> {stat.totalHours.toFixed(2)}
+        </p>
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-1 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-blue-600" />
+            <span>Rate per Hour:</span>
+          </label>
+          <input
+            type="number"
+            value={stat.hourlyRate || ''}
+            onChange={(e) => {
+              e.stopPropagation(); // Prevent event from bubbling up to the card
+              handleHourlyRateChange(stat.waiter.name, e.target.value);
+            }}
+            className="border rounded-lg p-2 w-full text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter rate"
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <p className="text-green-700 font-semibold mb-2 flex items-center gap-2">
+          <Wallet className="w-5 h-5 text-green-600" />
+          <span>Gross Pay:</span> R{stat.grossEarnings.toFixed(2)}
+        </p>
+        <p className="text-blue-700 font-semibold mb-2 flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-blue-600" />
+          <span>Total Transport:</span> R{stat.transport.toFixed(2)}
+        </p>
+        <p className="text-red-700 font-semibold flex items-center gap-2">
+          <Wallet className="w-5 h-5 text-green-600" />
+          <span>Net Pay Due:</span> R{(stat.grossEarnings - stat.transport).toFixed(2)}
+        </p>
+      </div>
+      ))}
         </div>
       )}
     </div>
