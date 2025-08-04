@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from '@/firebase'; // Adjust path to your Firebase config
+import { db } from '../firebase'; // Adjust path to your Firebase config
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import toast, { Toaster } from 'react-hot-toast';
