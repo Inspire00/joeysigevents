@@ -28,8 +28,13 @@ export default function InvoicePage() {
     const [invoiceData, setInvoiceData] = useState(null);
     const [totalCost, setTotalCost] = useState(0);
 
-    const fetchEvents = async () => {
+   const fetchEvents = async () => {
     setLoading(true);
+
+    // Add console logs to see the raw input values
+    console.log("Raw Start Date:", startDate);
+    console.log("Raw End Date:", endDate);
+
     if (!startDate || !endDate) {
         toast.error("Please select a date range.");
         setLoading(false);
@@ -39,6 +44,10 @@ export default function InvoicePage() {
     // Correct the date format to match Firestore's YYYY/MM/DD
     const formattedStartDate = startDate.replace(/-/g, '/');
     const formattedEndDate = endDate.replace(/-/g, '/');
+    
+    // Add console logs to see the formatted values
+    console.log("Formatted Start Date for Firestore Query:", formattedStartDate);
+    console.log("Formatted End Date for Firestore Query:", formattedEndDate);
 
     try {
         const eventsRef = collection(db, "sibutha_staff");
@@ -50,7 +59,7 @@ export default function InvoicePage() {
         const fetchedEvents = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-            sourceCollection: 'sibutha_staff' // Add source collection for clarity
+            sourceCollection: 'sibutha_staff'
         }));
         setEvents(fetchedEvents);
         toast.success(`${fetchedEvents.length} events found.`);
