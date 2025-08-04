@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from '../firebase'; // Adjust path to your Firebase config
+import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import toast, { Toaster } from 'react-hot-toast';
@@ -155,88 +156,43 @@ export default function InvoicePage() {
         setTotalCost(0);
     };
 
-    const generatePDF = async() => {
-            if (!invoiceData || !invoiceData.items.length) {
-                toast.error("No data to generate PDF.");
-                return;
-            }
+   const generatePDF = async () => {
+    const input = document.getElementById('invoice-content');
+    if (!input) {
+        toast.error("Invoice content not found.");
+        return;
+    }
 
-            try {
-                const { default: jsPDF } = await import('jspdf');
-                await import('jspdf-autotable');
+    try {
+        const canvas = await html2canvas(input);
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210; 
+        const pageHeight = 295;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        let heightLeft = imgHeight;
+        
+        let position = 0;
 
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
 
-                    const doc = new jsPDF();
-                    // Set a standard font to avoid embedding and reduce file size
-                    doc.setFont('Helvetica'); 
-                    const invoiceNumber = `INV-${new Date().getTime().toString().slice(-6)}`;
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
 
-                    // A check to ensure the plugin has loaded
-                    if (typeof doc.autoTable !== 'function') {
-                        console.error("jsPDF-autotable plugin is not loaded.");
-                        toast.error("PDF generator failed. Please refresh the page.");
-                        return;
-                    }
-                    
-                    // Invoice Items Table
-                    const tableColumn = ["Description", "Hours", "Rate/hr (R)", "Transport (R)", "Total (R)"];
-                    const tableRows = invoiceData.items.map(item => [
-                        item.description,
-                        item.hours,
-                        item.rate,
-                        item.transport,
-                        item.total.toFixed(2),
-                    ]);
+        const pdfFileName = `Invoice_${invoiceData.clientDetails.companyName}_${invoiceData.clientDetails.date}.pdf`;
+        pdf.save(pdfFileName);
+        toast.success("Invoice PDF created!");
 
-                    doc.autoTable({
-                            startY: 60,
-                            head: [tableColumn],
-                            body: tableRows,
-                            styles: { fontSize: 8 },
-                            headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
-                        });
-
-                        
-
-
-                    // Company Details
-                    doc.setFontSize(18);
-                    doc.text(MY_COMPANY_DETAILS.name, 10, 20);
-                    doc.setFontSize(10);
-                    doc.text(`Contact: ${MY_COMPANY_DETAILS.contactPerson} | Phone: ${MY_COMPANY_DETAILS.phone}`, 10, 26);
-                    doc.text(`Email: ${MY_COMPANY_DETAILS.email}`, 10, 32);
-                    doc.text(`Address: ${MY_COMPANY_DETAILS.address}`, 10, 38);
-
-                    // Client Details
-                    doc.setFontSize(14);
-                    doc.text('Invoice To:', 140, 20);
-                    doc.setFontSize(10);
-                    doc.text(`Company: ${invoiceData.clientDetails.companyName}`, 140, 26);
-                    doc.text(`Client: ${invoiceData.clientDetails.client_name}`, 140, 32);
-                    doc.text(`Date of Service: ${invoiceData.clientDetails.date}`, 140, 38);
-                    doc.text(`Location: ${invoiceData.clientDetails.location}`, 140, 44);
-                    doc.text(`Invoice #: ${invoiceNumber}`, 140, 50);
-
-                
-                    const finalY = doc.autoTable.previous.finalY;
-
-                    // Totals and Banking Details
-                    doc.setFontSize(12);
-                    doc.text(`GRAND TOTAL: R${totalCost.toFixed(2)}`, 140, finalY + 10);
-                    
-                    doc.setFontSize(10);
-                    doc.text('Banking Details:', 10, finalY + 20);
-                    doc.text(`Bank Name: ${MY_COMPANY_DETAILS.bankName}`, 10, finalY + 26);
-                    doc.text(`Account Holder: ${MY_COMPANY_DETAILS.accountHolder}`, 10, finalY + 32);
-                    doc.text(`Account Number: ${MY_COMPANY_DETAILS.accountNumber}`, 10, finalY + 38);
-
-                    const pdfFileName = `Invoice_${invoiceData.clientDetails.companyName}_${invoiceData.clientDetails.date}.pdf`;
-                        doc.save(pdfFileName);
-                        toast.success("Invoice PDF created!");
-            } catch (error) {
-                console.error("Failed to generate PDF:", error);
-                toast.error("Failed to generate PDF. Check console for details.");
-            }
+    } catch (error) {
+        console.error("Failed to generate PDF:", error);
+        toast.error("Failed to generate PDF. Check console for details.");
+    }
 };
     
     return (
