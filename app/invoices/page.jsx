@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from '../firebase'; // Adjust path to your Firebase config
+import { db } from '../firebase'; // Adjust this path to your Firebase config
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
 import toast, { Toaster } from 'react-hot-toast';
+import './InvoicePage.css'; // Your CSS file for styling
 
+// Company details for the invoice, you can change this
 const MY_COMPANY_DETAILS = {
     name: "Sibutha Projects",
     contactPerson: "Richard Sibutha",
@@ -29,49 +30,44 @@ export default function InvoicePage() {
     const [invoiceData, setInvoiceData] = useState(null);
     const [totalCost, setTotalCost] = useState(0);
 
-   const fetchEvents = async () => {
-    setLoading(true);
+    // Fetch events from Firestore based on date range
+    const fetchEvents = async () => {
+        setLoading(true);
 
-    // Add console logs to see the raw input values
-    console.log("Raw Start Date:", startDate);
-    console.log("Raw End Date:", endDate);
+        if (!startDate || !endDate) {
+            toast.error("Please select a date range.");
+            setLoading(false);
+            return;
+        }
 
-    if (!startDate || !endDate) {
-        toast.error("Please select a date range.");
-        setLoading(false);
-        return;
-    }
+        // Correct the date format to match Firestore's YYYY/MM/DD
+        const formattedStartDate = startDate.replace(/-/g, '/');
+        const formattedEndDate = endDate.replace(/-/g, '/');
+        
+        try {
+            // Only fetch events from sibutha_staff, as it's the primary source
+            const eventsRef = collection(db, "sibutha_staff");
+            const q = query(eventsRef, 
+                where("date", ">=", formattedStartDate), 
+                where("date", "<=", formattedEndDate)
+            );
+            const querySnapshot = await getDocs(q);
+            const fetchedEvents = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                sourceCollection: 'sibutha_staff'
+            }));
+            setEvents(fetchedEvents);
+            toast.success(`${fetchedEvents.length} events found.`);
+        } catch (error) {
+            console.error("Error fetching events:", error);
+            toast.error("Failed to fetch events.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    // Correct the date format to match Firestore's YYYY/MM/DD
-    const formattedStartDate = startDate.replace(/-/g, '/');
-    const formattedEndDate = endDate.replace(/-/g, '/');
-    
-    // Add console logs to see the formatted values
-    console.log("Formatted Start Date for Firestore Query:", formattedStartDate);
-    console.log("Formatted End Date for Firestore Query:", formattedEndDate);
-
-    try {
-        const eventsRef = collection(db, "sibutha_staff");
-        const q = query(eventsRef, 
-            where("date", ">=", formattedStartDate), 
-            where("date", "<=", formattedEndDate)
-        );
-        const querySnapshot = await getDocs(q);
-        const fetchedEvents = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            sourceCollection: 'sibutha_staff'
-        }));
-        setEvents(fetchedEvents);
-        toast.success(`${fetchedEvents.length} events found.`);
-    } catch (error) {
-        console.error("Error fetching events:", error);
-        toast.error("Failed to fetch events.");
-    } finally {
-        setLoading(false);
-    }
-};
-
+    // Fetch full invoice data for a selected event from both staff and casuals
     const fetchInvoiceData = async (eventId) => {
         let staffInvoiceItems = [];
         let total = 0;
@@ -113,7 +109,11 @@ export default function InvoicePage() {
             processStaff(event.head_waiters, "Head Waiter", 150);
             processStaff(event.waiters, "Waiter", 120);
 
-            const casualsQuery = query(collection(db, 'sibutha_casuals'), where('comp', '==', clientDetails.companyName), where('date', '==', clientDetails.date));
+            const casualsQuery = query(
+                collection(db, 'sibutha_casuals'),
+                where('comp', '==', clientDetails.companyName),
+                where('date', '==', clientDetails.date)
+            );
             const casualsSnapshot = await getDocs(casualsQuery);
 
             casualsSnapshot.docs.forEach(doc => {
@@ -143,12 +143,14 @@ export default function InvoicePage() {
         setTotalCost(total);
     };
 
+    // Open the modal and fetch data when an event is clicked
     const handleEventClick = async (event) => {
         setIsModalOpen(true);
         setSelectedEvent(event);
         await fetchInvoiceData(event.id);
     };
 
+    // Close the modal and reset state
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedEvent(null);
@@ -156,44 +158,44 @@ export default function InvoicePage() {
         setTotalCost(0);
     };
 
-   const generatePDF = async () => {
-    const input = document.getElementById('invoice-content');
-    if (!input) {
-        toast.error("Invoice content not found.");
-        return;
-    }
-
-    try {
-        const canvas = await html2canvas(input);
-        const imgData = canvas.toDataURL('image/jpeg', 1.0);
-        
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210; 
-        const pageHeight = 295;
-        const imgHeight = canvas.height * imgWidth / canvas.width;
-        let heightLeft = imgHeight;
-        
-        let position = 0;
-
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+    // Generate the PDF using html2canvas to capture the visible modal content
+    const generatePDF = async () => {
+        const input = document.getElementById('invoice-content');
+        if (!input) {
+            toast.error("Invoice content not found.");
+            return;
         }
 
-        const pdfFileName = `Invoice_${invoiceData.clientDetails.companyName}_${invoiceData.clientDetails.date}.pdf`;
-        pdf.save(pdfFileName);
-        toast.success("Invoice PDF created!");
+        try {
+            const canvas = await html2canvas(input);
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210; 
+            const pageHeight = 295;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
 
-    } catch (error) {
-        console.error("Failed to generate PDF:", error);
-        toast.error("Failed to generate PDF. Check console for details.");
-    }
-};
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const pdfFileName = `Invoice_${invoiceData.clientDetails.companyName}_${invoiceData.clientDetails.date}.pdf`;
+            pdf.save(pdfFileName);
+            toast.success("Invoice PDF created!");
+
+        } catch (error) {
+            console.error("Failed to generate PDF:", error);
+            toast.error("Failed to generate PDF. Check console for details.");
+        }
+    };
     
     return (
         <div className="max-w-4xl mx-auto p-8 font-sans bg-gray-50 rounded-lg shadow-lg">
