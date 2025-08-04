@@ -166,24 +166,13 @@ export default function InvoicePage() {
     doc.setFont('Helvetica'); 
     const invoiceNumber = `INV-${new Date().getTime().toString().slice(-6)}`;
 
-    // Company Details
-    doc.setFontSize(18);
-    doc.text(MY_COMPANY_DETAILS.name, 10, 20);
-    doc.setFontSize(10);
-    doc.text(`Contact: ${MY_COMPANY_DETAILS.contactPerson} | Phone: ${MY_COMPANY_DETAILS.phone}`, 10, 26);
-    doc.text(`Email: ${MY_COMPANY_DETAILS.email}`, 10, 32);
-    doc.text(`Address: ${MY_COMPANY_DETAILS.address}`, 10, 38);
-
-    // Client Details
-    doc.setFontSize(14);
-    doc.text('Invoice To:', 140, 20);
-    doc.setFontSize(10);
-    doc.text(`Company: ${invoiceData.clientDetails.companyName}`, 140, 26);
-    doc.text(`Client: ${invoiceData.clientDetails.client_name}`, 140, 32);
-    doc.text(`Date of Service: ${invoiceData.clientDetails.date}`, 140, 38);
-    doc.text(`Location: ${invoiceData.clientDetails.location}`, 140, 44);
-    doc.text(`Invoice #: ${invoiceNumber}`, 140, 50);
-
+    // A check to ensure the plugin has loaded
+    if (typeof doc.autoTable !== 'function') {
+        console.error("jsPDF-autotable plugin is not loaded.");
+        toast.error("PDF generator failed. Please refresh the page.");
+        return;
+    }
+    
     // Invoice Items Table
     const tableColumn = ["Description", "Hours", "Rate/hr (R)", "Transport (R)", "Total (R)"];
     const tableRows = invoiceData.items.map(item => [
@@ -202,6 +191,25 @@ export default function InvoicePage() {
         headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
     });
 
+    // Company Details
+    doc.setFontSize(18);
+    doc.text(MY_COMPANY_DETAILS.name, 10, 20);
+    doc.setFontSize(10);
+    doc.text(`Contact: ${MY_COMPANY_DETAILS.contactPerson} | Phone: ${MY_COMPANY_DETAILS.phone}`, 10, 26);
+    doc.text(`Email: ${MY_COMPANY_DETAILS.email}`, 10, 32);
+    doc.text(`Address: ${MY_COMPANY_DETAILS.address}`, 10, 38);
+
+    // Client Details
+    doc.setFontSize(14);
+    doc.text('Invoice To:', 140, 20);
+    doc.setFontSize(10);
+    doc.text(`Company: ${invoiceData.clientDetails.companyName}`, 140, 26);
+    doc.text(`Client: ${invoiceData.clientDetails.client_name}`, 140, 32);
+    doc.text(`Date of Service: ${invoiceData.clientDetails.date}`, 140, 38);
+    doc.text(`Location: ${invoiceData.clientDetails.location}`, 140, 44);
+    doc.text(`Invoice #: ${invoiceNumber}`, 140, 50);
+
+   
     const finalY = doc.autoTable.previous.finalY;
 
     // Totals and Banking Details
