@@ -156,16 +156,68 @@ export default function InvoicePage() {
     };
 
     const generatePDF = () => {
-        if (!invoiceData) {
-            toast.error("No data to generate PDF.");
-            return;
-        }
-        const doc = new jsPDF();
-        // PDF generation logic here
-        const pdfFileName = `Invoice_${invoiceData.clientDetails.companyName}_${invoiceData.clientDetails.date}.pdf`;
-        doc.save(pdfFileName);
-        toast.success("Invoice PDF created!");
-    };
+    if (!invoiceData || !invoiceData.items.length) {
+        toast.error("No data to generate PDF.");
+        return;
+    }
+
+    const doc = new jsPDF();
+    // Set a standard font to avoid embedding and reduce file size
+    doc.setFont('Helvetica'); 
+    const invoiceNumber = `INV-${new Date().getTime().toString().slice(-6)}`;
+
+    // Company Details
+    doc.setFontSize(18);
+    doc.text(MY_COMPANY_DETAILS.name, 10, 20);
+    doc.setFontSize(10);
+    doc.text(`Contact: ${MY_COMPANY_DETAILS.contactPerson} | Phone: ${MY_COMPANY_DETAILS.phone}`, 10, 26);
+    doc.text(`Email: ${MY_COMPANY_DETAILS.email}`, 10, 32);
+    doc.text(`Address: ${MY_COMPANY_DETAILS.address}`, 10, 38);
+
+    // Client Details
+    doc.setFontSize(14);
+    doc.text('Invoice To:', 140, 20);
+    doc.setFontSize(10);
+    doc.text(`Company: ${invoiceData.clientDetails.companyName}`, 140, 26);
+    doc.text(`Client: ${invoiceData.clientDetails.client_name}`, 140, 32);
+    doc.text(`Date of Service: ${invoiceData.clientDetails.date}`, 140, 38);
+    doc.text(`Location: ${invoiceData.clientDetails.location}`, 140, 44);
+    doc.text(`Invoice #: ${invoiceNumber}`, 140, 50);
+
+    // Invoice Items Table
+    const tableColumn = ["Description", "Hours", "Rate/hr (R)", "Transport (R)", "Total (R)"];
+    const tableRows = invoiceData.items.map(item => [
+        item.description,
+        item.hours,
+        item.rate,
+        item.transport,
+        item.total.toFixed(2),
+    ]);
+
+    doc.autoTable({
+        startY: 60,
+        head: [tableColumn],
+        body: tableRows,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
+    });
+
+    const finalY = doc.autoTable.previous.finalY;
+
+    // Totals and Banking Details
+    doc.setFontSize(12);
+    doc.text(`GRAND TOTAL: R${totalCost.toFixed(2)}`, 140, finalY + 10);
+    
+    doc.setFontSize(10);
+    doc.text('Banking Details:', 10, finalY + 20);
+    doc.text(`Bank Name: ${MY_COMPANY_DETAILS.bankName}`, 10, finalY + 26);
+    doc.text(`Account Holder: ${MY_COMPANY_DETAILS.accountHolder}`, 10, finalY + 32);
+    doc.text(`Account Number: ${MY_COMPANY_DETAILS.accountNumber}`, 10, finalY + 38);
+
+    const pdfFileName = `Invoice_${invoiceData.clientDetails.companyName}_${invoiceData.clientDetails.date}.pdf`;
+    doc.save(pdfFileName);
+    toast.success("Invoice PDF created!");
+};
     
     return (
         <div className="max-w-4xl mx-auto p-8 font-sans bg-gray-50 rounded-lg shadow-lg">
