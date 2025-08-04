@@ -29,33 +29,38 @@ export default function InvoicePage() {
     const [totalCost, setTotalCost] = useState(0);
 
     const fetchEvents = async () => {
-        setLoading(true);
-        if (!startDate || !endDate) {
-            toast.error("Please select a date range.");
-            setLoading(false);
-            return;
-        }
+    setLoading(true);
+    if (!startDate || !endDate) {
+        toast.error("Please select a date range.");
+        setLoading(false);
+        return;
+    }
 
-        try {
-            const eventsRef = collection(db, "sibutha_staff");
-            const q = query(eventsRef, 
-                where("date", ">=", startDate), 
-                where("date", "<=", endDate)
-            );
-            const querySnapshot = await getDocs(q);
-            const fetchedEvents = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setEvents(fetchedEvents);
-            toast.success(`${fetchedEvents.length} events found.`);
-        } catch (error) {
-            console.error("Error fetching events:", error);
-            toast.error("Failed to fetch events.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Correct the date format to match Firestore's YYYY/MM/DD
+    const formattedStartDate = startDate.replace(/-/g, '/');
+    const formattedEndDate = endDate.replace(/-/g, '/');
+
+    try {
+        const eventsRef = collection(db, "sibutha_staff");
+        const q = query(eventsRef, 
+            where("date", ">=", formattedStartDate), 
+            where("date", "<=", formattedEndDate)
+        );
+        const querySnapshot = await getDocs(q);
+        const fetchedEvents = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            sourceCollection: 'sibutha_staff' // Add source collection for clarity
+        }));
+        setEvents(fetchedEvents);
+        toast.success(`${fetchedEvents.length} events found.`);
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        toast.error("Failed to fetch events.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     const fetchInvoiceData = async (eventId) => {
         let staffInvoiceItems = [];
