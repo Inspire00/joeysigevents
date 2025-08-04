@@ -80,6 +80,16 @@ export default function Admin() {
               <h2 className="text-xl font-semibold">Staff Payroll</h2>
             </motion.div>
 
+            {/* Dashboard Card */}
+            <motion.div
+              className="bg-gray-900 p-6 rounded-lg cursor-pointer hover:bg-gray-800 transition"
+              whileHover={{ scale: 1.05 }}
+              onClick={() => handleNavigate('/invoices')}
+            >
+              <Camera className="w-12 h-12 mb-4 text-[#ea176b]" />
+              <h2 className="text-xl font-semibold">Staff Payroll</h2>
+            </motion.div>
+
             {/* Steps Dashboard Card */}
             <motion.div
               className="bg-gray-900 p-6 rounded-lg cursor-pointer hover:bg-gray-800 transition"
